@@ -46,7 +46,12 @@ class Minesweeper(numOfMines: Int) {
 
     private fun generateFieldWithMines(numOfMines: Int): Array<CharArray> {
         val mines = generateMines(numOfMines)
+        placeMinesToField(mines)
+        calculateAmountOfMinesAroundEmptyCells()
+        return field
+    }
 
+    private fun placeMinesToField(mines: MutableList<Boolean>) {
         for (i in 0 until sizeOfField) {
             for (j in 0 until sizeOfField) {
                 if (mines[i * sizeOfField + j]) {
@@ -56,7 +61,31 @@ class Minesweeper(numOfMines: Int) {
                 }
             }
         }
-        return field
+    }
+
+    private fun calculateAmountOfMinesAroundEmptyCells() {
+        for (i in 0 until sizeOfField) {
+            for (j in 0 until sizeOfField) {
+
+                var numOfMinesNearby = 0
+                if (field[i][j] != 'X') {
+                    for (k in -1..1) {
+                        for (l in -1..1) {
+                            if (correctCoordinates(i + k, j + l) && field[i + k][j + l] == 'X') {
+                                numOfMinesNearby++
+                            }
+                        }
+                    }
+                    if (numOfMinesNearby > 0) {
+                        field[i][j] = numOfMinesNearby.toString()[0]
+                    }
+                }
+            }
+        }
+    }
+
+    private fun correctCoordinates(i: Int, j: Int): Boolean {
+        return (i in 0..(sizeOfField - 1) && j in 0..(sizeOfField - 1))
     }
 
     fun printField() {
