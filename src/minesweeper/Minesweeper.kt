@@ -5,10 +5,16 @@ import java.util.*
 inline fun <reified T> matrix2d(height: Int, width: Int, initialize: () -> T) =
     Array(height) { Array(width) { initialize() } }
 
-fun main(args: Array<String>) {
+fun main() {
     val numOfMines = getNumberOfMines()
     val game = Minesweeper(numOfMines)
     game.printField()
+    while (!game.allMinesFound(numOfMines)) {
+        val coordinates = readCoordinates()
+        game.placeMarkOnCoordinates(coordinates)
+        game.printField()
+    }
+    println("Congratulations! You founded all mines!")
 }
 
 private fun getNumberOfMines(): Int {
@@ -21,7 +27,20 @@ private fun getNumberOfMines(): Int {
         numOfMines = scanner.nextInt()
     }
     return numOfMines
+}
 
+private fun readCoordinates(): Pair<Int, Int> {
+    while (true) {
+        println("Set/delete mines marks (x and y coordinates): ")
+        val scanner = Scanner(System.`in`)
+        val x = scanner.nextInt()
+        val y = scanner.nextInt()
+        if (x in 1..9 && y in 1..9) {
+            return Pair(x, y)
+        } else {
+            println("Please enter correct coordinates (both in range 1..9)")
+        }
+    }
 }
 
 class Minesweeper(numOfMines: Int) {
@@ -32,8 +51,12 @@ class Minesweeper(numOfMines: Int) {
 
     companion object {
         const val sizeOfField = 9
+        var correctMinesFound = 0
+        var totalMinesSet = 0
         var field = matrix2d(sizeOfField, sizeOfField) { MyPair('.', '.') }
     }
+
+    fun allMinesFound(numOfMines: Int) = numOfMines == correctMinesFound && numOfMines == totalMinesSet
 
     private fun generateMines(numOfMines: Int): MutableList<Boolean> {
         val mines: MutableList<Boolean> = mutableListOf()
@@ -101,6 +124,28 @@ class Minesweeper(numOfMines: Int) {
             index++
         }
         println("—│—————————│")
+    }
+
+    fun placeMarkOnCoordinates(coordinates: Pair<Int, Int>) {
+        val y = coordinates.first - 1
+        val x = coordinates.second - 1
+        if (field[x][y].exactValue == 'X') {
+            if (field[x][y].playerValue == '.') {
+                field[x][y].playerValue = '*'
+                correctMinesFound++
+                totalMinesSet++
+            } else {
+                field[x][y].playerValue = '.'
+                correctMinesFound--
+                totalMinesSet--
+            }
+        } else if (field[x][y].playerValue == '.') {
+            field[x][y].playerValue = '*'
+            totalMinesSet++
+        } else if (field[x][y].playerValue == '*') {
+            field[x][y].playerValue = '.'
+            totalMinesSet--
+        }
     }
 
     class MyPair(var exactValue: Char, var playerValue: Char)
