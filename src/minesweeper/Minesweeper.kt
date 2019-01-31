@@ -2,6 +2,9 @@ package minesweeper
 
 import java.util.*
 
+inline fun <reified T> matrix2d(height: Int, width: Int, initialize: () -> T) =
+    Array(height) { Array(width) { initialize() } }
+
 fun main(args: Array<String>) {
     val numOfMines = getNumberOfMines()
     val game = Minesweeper(numOfMines)
@@ -29,7 +32,7 @@ class Minesweeper(numOfMines: Int) {
 
     companion object {
         const val sizeOfField = 9
-        var field: Array<CharArray> = Array(sizeOfField, { CharArray(sizeOfField) })
+        var field = matrix2d(sizeOfField, sizeOfField) { MyPair('.', '.') }
     }
 
     private fun generateMines(numOfMines: Int): MutableList<Boolean> {
@@ -44,7 +47,7 @@ class Minesweeper(numOfMines: Int) {
         return mines
     }
 
-    private fun generateFieldWithMines(numOfMines: Int): Array<CharArray> {
+    private fun generateFieldWithMines(numOfMines: Int): Array<Array<MyPair>> {
         val mines = generateMines(numOfMines)
         placeMinesToField(mines)
         calculateAmountOfMinesAroundEmptyCells()
@@ -55,9 +58,7 @@ class Minesweeper(numOfMines: Int) {
         for (i in 0 until sizeOfField) {
             for (j in 0 until sizeOfField) {
                 if (mines[i * sizeOfField + j]) {
-                    field[i][j] = 'X'
-                } else {
-                    field[i][j] = '.'
+                    field[i][j].exactValue = 'X'
                 }
             }
         }
@@ -68,33 +69,40 @@ class Minesweeper(numOfMines: Int) {
             for (j in 0 until sizeOfField) {
 
                 var numOfMinesNearby = 0
-                if (field[i][j] != 'X') {
+                if (field[i][j].exactValue != 'X') {
                     for (k in -1..1) {
                         for (l in -1..1) {
-                            if (correctCoordinates(i + k, j + l) && field[i + k][j + l] == 'X') {
+                            if (correctCoordinates(i + k, j + l) && field[i + k][j + l].exactValue == 'X') {
                                 numOfMinesNearby++
                             }
                         }
                     }
                     if (numOfMinesNearby > 0) {
-                        field[i][j] = numOfMinesNearby.toString()[0]
+                        field[i][j].playerValue = numOfMinesNearby.toString()[0]
                     }
                 }
             }
         }
     }
 
-    private fun correctCoordinates(i: Int, j: Int): Boolean {
-        return (i in 0..(sizeOfField - 1) && j in 0..(sizeOfField - 1))
-    }
+    private fun correctCoordinates(i: Int, j: Int) =
+        i in 0..(sizeOfField - 1) && j in 0..(sizeOfField - 1)
 
     fun printField() {
+        println("\n │123456789│")
+        println("—│—————————│")
+        var index = 1
         for (line in field) {
+            print("$index|")
             for (cell in line) {
-                print("$cell ")
+                print("${cell.playerValue}")
             }
-            println()
+            println("|")
+            index++
         }
+        println("—│—————————│")
     }
+
+    class MyPair(var exactValue: Char, var playerValue: Char)
 
 }
