@@ -9,12 +9,16 @@ fun main() {
     val numOfMines = getNumberOfMines()
     val game = Minesweeper(numOfMines)
     game.printField()
-    while (!game.allMinesFound(numOfMines)) {
-        val coordinates = readCoordinates()
-        game.placeMarkOnCoordinates(coordinates)
+    while (!game.allMinesFound(numOfMines) && !game.isLost()) {
+        makeNextStep(game)
         game.printField()
     }
-    println("Congratulations! You founded all mines!")
+    if (game.isLost()) {
+        println("You stepped on a mine and failed!")
+    } else {
+        println("Congratulations! You founded all mines!")
+
+    }
 }
 
 private fun getNumberOfMines(): Int {
@@ -29,17 +33,19 @@ private fun getNumberOfMines(): Int {
     return numOfMines
 }
 
-private fun readCoordinates(): Pair<Int, Int> {
-    while (true) {
-        println("Set/delete mines marks (x and y coordinates): ")
-        val scanner = Scanner(System.`in`)
-        val x = scanner.nextInt()
-        val y = scanner.nextInt()
-        if (x in 1..9 && y in 1..9) {
-            return Pair(x, y)
-        } else {
-            println("Please enter correct coordinates (both in range 1..9)")
+private fun makeNextStep(game: Minesweeper) {
+    println("Set/unset mines marks or claim a cell as free:")
+    val scanner = Scanner(System.`in`)
+    val y = scanner.nextInt() - 1
+    val x = scanner.nextInt() - 1
+    if (x in 0..8 && y in 0..8) {
+        val nextStep = scanner.next()
+        when (nextStep) {
+            "free" -> game.checkMine(Pair(x, y))
+            "mine" -> game.setMine(Pair(x, y))
         }
+    } else {
+        println("Please enter correct coordinates (both in range 1..9)")
     }
 }
 
@@ -51,12 +57,19 @@ class Minesweeper(numOfMines: Int) {
 
     companion object {
         const val sizeOfField = 9
+        var lost = false
         var correctMinesFound = 0
-        var totalMinesSet = 0
-        var field = matrix2d(sizeOfField, sizeOfField) { MyPair('.', '.') }
+        var cellsOpened = 0
+        var field = matrix2d(sizeOfField, sizeOfField) { MyPair('/', '.') }
     }
 
-    fun allMinesFound(numOfMines: Int) = numOfMines == correctMinesFound && numOfMines == totalMinesSet
+    fun isLost() = lost
+
+    fun allMinesFound(numOfMines: Int) = (numOfMines == correctMinesFound)
+            || allClosedCellsAreWithMines(numOfMines)
+
+    private fun allClosedCellsAreWithMines(numOfMines: Int) =
+        sizeOfField * sizeOfField - cellsOpened - correctMinesFound == numOfMines
 
     private fun generateMines(numOfMines: Int): MutableList<Boolean> {
         val mines: MutableList<Boolean> = mutableListOf()
@@ -90,7 +103,6 @@ class Minesweeper(numOfMines: Int) {
     private fun calculateAmountOfMinesAroundEmptyCells() {
         for (i in 0 until sizeOfField) {
             for (j in 0 until sizeOfField) {
-
                 var numOfMinesNearby = 0
                 if (field[i][j].exactValue != 'X') {
                     for (k in -1..1) {
@@ -101,7 +113,7 @@ class Minesweeper(numOfMines: Int) {
                         }
                     }
                     if (numOfMinesNearby > 0) {
-                        field[i][j].playerValue = numOfMinesNearby.toString()[0]
+                        field[i][j].exactValue = numOfMinesNearby.toString()[0]
                     }
                 }
             }
@@ -126,25 +138,69 @@ class Minesweeper(numOfMines: Int) {
         println("—│—————————│")
     }
 
-    fun placeMarkOnCoordinates(coordinates: Pair<Int, Int>) {
-        val y = coordinates.first - 1
-        val x = coordinates.second - 1
+    fun checkMine(coordinates: Pair<Int, Int>) {
+        val x = coordinates.first
+        val y = coordinates.second
+        if (field[x][y].exactValue == 'X') {
+            lost = true
+            field[x][y].playerValue = 'X'
+        } else {
+            openAllPossibleCellsNearby(coordinates)
+        }
+    }
+
+    fun setMine(coordinates: Pair<Int, Int>) {
+        val x = coordinates.first
+        val y = coordinates.second
         if (field[x][y].exactValue == 'X') {
             if (field[x][y].playerValue == '.') {
                 field[x][y].playerValue = '*'
                 correctMinesFound++
-                totalMinesSet++
+                cellsOpened++
             } else {
                 field[x][y].playerValue = '.'
                 correctMinesFound--
-                totalMinesSet--
+                cellsOpened--
             }
         } else if (field[x][y].playerValue == '.') {
             field[x][y].playerValue = '*'
-            totalMinesSet++
+            cellsOpened++
         } else if (field[x][y].playerValue == '*') {
             field[x][y].playerValue = '.'
-            totalMinesSet--
+            cellsOpened--
+        }
+    }
+
+    private fun openAllPossibleCellsNearby(coordinates: Pair<Int, Int>) {
+        val queue: Queue<Pair<Int, Int>> = ArrayDeque<Pair<Int, Int>>()
+        val first = coordinates.first
+        val second = coordinates.second
+        queue.add(Pair(first, second))
+        while (!queue.isEmpty()) {
+            val element = queue.remove()
+            val x = element.first
+            val y = element.second
+            when (field[x][y].exactValue) {
+                in '1'..'8' -> {
+                    if (field[x][y].playerValue == '.') {
+                        field[x][y].playerValue = field[x][y].exactValue
+                        cellsOpened++
+                    }
+                }
+                '/' -> {
+                    for (i in -1..1) {
+                        for (j in -1..1) {
+                            if (correctCoordinates(x + i, y + j) && field[x + i][y + j].playerValue == '.') {
+                                field[x + i][y + j].playerValue = field[x + i][y + j].exactValue
+                                cellsOpened++
+                                if (field[x + i][y + j].exactValue == '/') {
+                                    queue.add(Pair(x + i, y + j))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
