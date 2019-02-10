@@ -1,5 +1,99 @@
 package minesweeper
 
+import java.util.*
+import kotlin.random.Random
+
+fun generateMines(field: Array<CharArray>, mineCount: Int) {
+    var needMine = mineCount
+    for (i in 0..9) {
+        for (j in 0..9) {
+            if (needMine > 0 && (Random.nextInt(100) <= mineCount || needMine == 100 - i * 10 - j)) {
+                needMine--
+                field[i][j] = 'X'
+            } else
+                field[i][j] = '.'
+        }
+    }
+}
+
+fun countMines(field: Array<CharArray>) {
+    for (i in 0..9)
+        for (j in 0..9)
+            if (field[i][j] != 'X') {
+                val mineCount = countMinesAroundCell(field, i, j)
+                if (mineCount != 0)
+                    field[i][j] = '0' + mineCount
+            }
+}
+
+fun countMinesAroundCell(field: Array<CharArray>, i: Int, j: Int): Int {
+    val delta = intArrayOf(-1, 0, 1)
+
+    var cnt = 0
+    for (dx in delta)
+        for (dy in delta)
+            if (!(dx == 0 && dy == 0) && i + dx >= 0 && dx + i < 10 && j + dy >= 0 && j + dy < 10 &&
+                    field[dx + i][dy + j] == 'X')
+                cnt++
+
+    return cnt
+}
+
+fun printField(field: Array<CharArray>, marks: List<Pair<Int, Int>>) {
+
+    val fieldToPrint = field.map { it.copyOf() }.toTypedArray()
+
+    for ((i, j) in marks) {
+        fieldToPrint[i][j] = '*'
+    }
+
+    for (i in 0..9)
+        for (j in 0..9)
+            if (fieldToPrint[i][j] == 'X')
+                fieldToPrint[i][j] = '.'
+
+    println(" |${('a'..('a' + 9)).joinToString("")}|")
+    println("-|----------|")
+    var ind = 0
+    println(fieldToPrint.joinToString("\n") {
+        ('a' + ind++).toString() + it.joinToString(separator = "", prefix = "|", postfix = "|")
+    })
+    println("-|----------|")
+}
+
+fun checkGame(field: Array<CharArray>, marks: List<Pair<Int, Int>>, mineCount: Int): Boolean {
+    if (marks.size != mineCount)
+        return false
+
+    for ((i, j) in marks) {
+        if (field[i][j] != 'X')
+            return false
+    }
+
+    return true
+}
+
 fun main(args: Array<String>) {
-    print("Hello world!")
+    val scanner = Scanner(System.`in`)
+    print("How many mines do you want on the field? ")
+    val mineCount = scanner.nextInt()
+
+    val field = Array(10) { CharArray(10) }
+    generateMines(field, mineCount)
+    countMines(field)
+
+    printField(field, listOf())
+
+    val marks = mutableListOf<Pair<Int, Int>>()
+    while (!checkGame(field, marks, mineCount)) {
+        print("Set/delete mines marks (x and y coordinates): ")
+        val x = scanner.next().first()
+        val y = scanner.next().first()
+
+        marks += Pair(y - 'a', x - 'a')
+        printField(field, marks)
+    }
+
+    println("Congratulations! You founded all mines!")
+//    println(field.joinToString("\n") { it.joinToString("") })
 }
