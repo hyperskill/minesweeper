@@ -39,6 +39,40 @@ fun countMinesAroundCell(field: Array<CharArray>, i: Int, j: Int): Int {
     return cnt
 }
 
+fun printField(field: Array<CharArray>, marks: List<Pair<Int, Int>>) {
+
+    val fieldToPrint = field.map { it.copyOf() }.toTypedArray()
+
+    for ((i, j) in marks) {
+        fieldToPrint[i][j] = '*'
+    }
+
+    for (i in 0..9)
+        for (j in 0..9)
+            if (fieldToPrint[i][j] == 'X')
+                fieldToPrint[i][j] = '.'
+
+    println(" |${('a'..('a' + 9)).joinToString("")}|")
+    println("-|----------|")
+    var ind = 0
+    println(fieldToPrint.joinToString("\n") {
+        ('a' + ind++).toString() + it.joinToString(separator = "", prefix = "|", postfix = "|")
+    })
+    println("-|----------|")
+}
+
+fun checkGame(field: Array<CharArray>, marks: List<Pair<Int, Int>>, mineCount: Int): Boolean {
+    if (marks.size != mineCount)
+        return false
+
+    for ((i, j) in marks) {
+        if (field[i][j] != 'X')
+            return false
+    }
+
+    return true
+}
+
 fun main(args: Array<String>) {
     val scanner = Scanner(System.`in`)
     print("How many mines do you want on the field? ")
@@ -48,5 +82,18 @@ fun main(args: Array<String>) {
     generateMines(field, mineCount)
     countMines(field)
 
-    println(field.joinToString("\n") { it.joinToString("") })
+    printField(field, listOf())
+
+    val marks = mutableListOf<Pair<Int, Int>>()
+    while (!checkGame(field, marks, mineCount)) {
+        print("Set/delete mines marks (x and y coordinates): ")
+        val x = scanner.next().first()
+        val y = scanner.next().first()
+
+        marks += Pair(y - 'a', x - 'a')
+        printField(field, marks)
+    }
+
+    println("Congratulations! You founded all mines!")
+//    println(field.joinToString("\n") { it.joinToString("") })
 }
