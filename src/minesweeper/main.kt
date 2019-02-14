@@ -11,7 +11,8 @@ const val MARK_CHAR = '*'
 class FieldInfo(val field: Array<CharArray>,
                 val mineCount: Int,
                 val marks: MutableSet<Pair<Int, Int>>,
-                val opened: MutableSet<Pair<Int, Int>>)
+                val opened: MutableSet<Pair<Int, Int>>
+)
 
 fun generateMines(fieldInfo: FieldInfo, generationPoint: Pair<Int, Int>) {
     var remainingMines = fieldInfo.mineCount
