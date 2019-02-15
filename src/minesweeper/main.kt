@@ -8,17 +8,18 @@ const val HIDDEN_CELL_CHAR = '.'
 const val EMPTY_CELL_CHAR = '\\'
 const val MARK_CHAR = '*'
 
-class FieldInfo(val field: Array<CharArray>,
-                val mineCount: Int,
-                val marks: MutableSet<Pair<Int, Int>>,
-                val opened: MutableSet<Pair<Int, Int>>
+class FieldInfo(
+    val field: Array<CharArray>,
+    val mineCount: Int,
+    val marks: MutableSet<Pair<Int, Int>>,
+    val opened: MutableSet<Pair<Int, Int>>
 )
 
 fun generateMines(fieldInfo: FieldInfo, generationPoint: Pair<Int, Int>) {
     var remainingMines = fieldInfo.mineCount
     for (rowId in fieldInfo.field.indices) {
         for (colId in fieldInfo.field[0].indices) {
-            val remainingCellsCount = fieldInfo.field.size* fieldInfo.field[0].size -
+            val remainingCellsCount = fieldInfo.field.size * fieldInfo.field[0].size -
                     rowId * fieldInfo.field.size - colId
 
             if (rowId == generationPoint.first && colId == generationPoint.second) {
@@ -31,8 +32,8 @@ fun generateMines(fieldInfo: FieldInfo, generationPoint: Pair<Int, Int>) {
             }
 
             if (remainingMines > 0 &&
-                    (Random.nextInt(fieldInfo.field.size * fieldInfo.field[0].size - 1) <= fieldInfo.mineCount ||
-                            remainingMines == remainingCellsCount)
+                (Random.nextInt(fieldInfo.field.size * fieldInfo.field[0].size - 1) <= fieldInfo.mineCount ||
+                        remainingMines == remainingCellsCount)
             ) {
                 remainingMines--
                 fieldInfo.field[rowId][colId] = MINE_CHAR
@@ -70,9 +71,9 @@ fun countMinesAroundCell(fieldInfo: FieldInfo, rowId: Int, colId: Int): Int {
     for (dRowId in deltas)
         for (dColId in deltas)
             if (!(dRowId == 0 && dColId == 0) &&
-                    rowId + dRowId in fieldInfo.field.indices &&
-                    colId + dColId in fieldInfo.field[0].indices &&
-                    fieldInfo.field[dRowId + rowId][dColId + colId] == MINE_CHAR
+                rowId + dRowId in fieldInfo.field.indices &&
+                colId + dColId in fieldInfo.field[0].indices &&
+                fieldInfo.field[dRowId + rowId][dColId + colId] == MINE_CHAR
             ) {
                 cnt++
             }
@@ -125,8 +126,10 @@ fun openNeighbours(fieldInfo: FieldInfo, point: Pair<Int, Int>) {
     for (dRowId in deltas)
         for (dColId in deltas) {
             if (point.first + dRowId !in fieldInfo.field.indices ||
-                    point.second + dColId !in fieldInfo.field[0].indices)
+                point.second + dColId !in fieldInfo.field[0].indices
+            ) {
                 continue
+            }
 
             if (Pair(point.first + dRowId, point.second + dColId) !in fieldInfo.opened)
                 openCell(fieldInfo, Pair(point.first + dRowId, point.second + dColId))
@@ -166,10 +169,10 @@ fun main() {
     } while (mineCount !in 1..MAX_MINES_COUNT)
 
     val fieldInfo = FieldInfo(
-            Array(FIELD_SIZE) { CharArray(FIELD_SIZE) },
-            mineCount,
-            mutableSetOf(),
-            mutableSetOf()
+        Array(FIELD_SIZE) { CharArray(FIELD_SIZE) },
+        mineCount,
+        mutableSetOf(),
+        mutableSetOf()
     )
 
     printField(fieldInfo, false)
@@ -180,7 +183,8 @@ fun main() {
         val y = scanner.next().first()
         generationPoint = Pair(y - 'a', x - 'a')
     } while (generationPoint.first !in fieldInfo.field.indices ||
-            generationPoint.second !in fieldInfo.field[0].indices)
+        generationPoint.second !in fieldInfo.field[0].indices
+    )
 
     generateMines(fieldInfo, generationPoint)
     countMines(fieldInfo)
