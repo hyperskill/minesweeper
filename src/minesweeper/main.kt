@@ -23,6 +23,7 @@ fun main(args: Array<String>) {
         } while (map[x][y] == 'X')
         map[x][y] = 'X'
     }
+    println()
     for (i in map) {
         println(i.joinToString(separator = ""))
     }
