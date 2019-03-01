@@ -1,20 +1,25 @@
 package minesweeper
 
 import java.util.*
-const val rows = 9
-const val columns = 9
-const val fieldCeilCount = rows * columns
 
-fun generateField(minesCount: Int): CharArray {
+const val rows = 9
+const val cols = 9
+const val mine = 'X'
+const val mark = '*'
+const val markedMine = '+'
+const val empty = '.'
+
+fun generateField(minesCount:Int): Array<Array<Char?>> {
+    val field = Array(rows) { arrayOfNulls<Char>(cols) }
     val random = Random()
-    val field = CharArray(fieldCeilCount)
     var count = minesCount
 
     while (count > 0) {
-        val index = random.nextInt(fieldCeilCount - 1)
+        val randomRow = random.nextInt(rows)
+        val randomCol = random.nextInt(rows)
 
-        if (field[index] != 'X') {
-            field[index] = 'X'
+        if (field[randomRow][randomCol] == null) {
+            field[randomRow][randomCol] = mine
             count--
         }
     }
@@ -22,77 +27,89 @@ fun generateField(minesCount: Int): CharArray {
     return field
 }
 
-fun isMineExist(fieldIndex: Int, field: CharArray): Boolean {
-    return fieldIndex >= 0 && fieldIndex < field.size && field[fieldIndex] == 'X'
-}
+fun cellInfo(field: Array<Array<Char?>>, row:Int, col:Int): Char {
+    var nearMinesCount = '0'
 
-
-fun calculateMinesInArea(fieldIndex: Int, field:CharArray): Int {
-    var count = 0
-    val topIndex = fieldIndex - columns
-    val topRightIndex = topIndex + 1
-    val topLeftIndex = topIndex - 1
-    val rightIndex = fieldIndex + 1
-    val leftIndex = fieldIndex - 1
-    val bottomIndex = fieldIndex + columns
-    val bottomRightIndex = bottomIndex + 1
-    val bottomLeftIndex = bottomIndex - 1
-    val isInOnLeftSide = fieldIndex % columns == 0
-    val isInOnRightSide = fieldIndex % columns == columns - 1
-
-    if(isMineExist(topIndex, field)) {
-        count++
-    }
-
-    if(!isInOnRightSide && isMineExist(topRightIndex, field)) {
-        count++
-    }
-
-    if(!isInOnLeftSide && isMineExist(topLeftIndex, field)) {
-        count++
-    }
-
-    if(!isInOnRightSide && isMineExist(rightIndex, field)) {
-        count++
-    }
-
-    if(!isInOnLeftSide && isMineExist(leftIndex, field)) {
-        count++
-    }
-
-    if(isMineExist(bottomIndex, field)) {
-        count++
-    }
-
-    if(!isInOnRightSide && isMineExist(bottomRightIndex, field)) {
-        count++
-    }
-
-    if(!isInOnLeftSide && isMineExist(bottomLeftIndex, field)) {
-        count++
-    }
-
-    return count
-}
-
-fun printField(field: CharArray) {
-    for (i in 0..(fieldCeilCount - 1)) {
-        if (i != 0 && i % columns == 0) {
-            println()
-        }
-
-        if (field[i] == 'X') {
-            print('X')
-        } else {
-            val minesCount = calculateMinesInArea(i, field)
-
-            if (minesCount == 0) {
-                print('.')
-            } else {
-                print(minesCount)
+    for (r in (row - 1)..(row + 1)) {
+        for (c in (col - 1)..(col + 1)) {
+            if (r >= 0
+                    && r <= field.lastIndex
+                    && c >= 0
+                    && c <= field[r].lastIndex
+                    && (field[r][c] == mine || field[r][c] == markedMine)
+            ) {
+                nearMinesCount++
             }
         }
     }
+
+    if (nearMinesCount != '0') {
+        return nearMinesCount
+    }
+
+    return empty
+}
+
+fun printFieldHeader(cols: Int) {
+    print(" │")
+
+    for (i in 0..(cols - 1)) {
+        print('A' + i)
+    }
+
+    println('│')
+}
+
+fun printSeparate(cols:Int) {
+    print("—│")
+
+    for (i in 1..cols) {
+        print('—')
+    }
+
+    println('│')
+}
+
+fun printField(field:Array<Array<Char?>>) {
+    printFieldHeader(cols)
+    printSeparate(cols)
+
+    for (row in 0..field.lastIndex) {
+        print(row + 1)
+        print('│')
+
+        for (col in 0..field[row].lastIndex) {
+            when(field[row][col]) {
+                mark, markedMine -> print(mark)
+                mine -> print(empty)
+                null -> print(cellInfo(field, row, col))
+            }
+        }
+
+        println('│')
+    }
+
+    printSeparate(cols)
+}
+
+fun markCell(field: Array<Array<Char?>>, rowIndex:Int, colIndex:Int) {
+    field[rowIndex][colIndex] = when(field[rowIndex][colIndex]) {
+        mine -> markedMine
+        markedMine -> mine
+        else -> mark
+    }
+}
+
+fun isWin(field: Array<Array<Char?>>): Boolean {
+    for (row in 0..field.lastIndex) {
+        for (col in 0..field[row].lastIndex) {
+            if (field[row][col] == mine) {
+                return false
+            }
+        }
+    }
+
+    return true
 }
 
 fun main(args: Array<String>) {
@@ -103,5 +120,21 @@ fun main(args: Array<String>) {
     val minesCount = scanner.nextInt()
     val field = generateField(minesCount)
 
-    printField(field)
+    while (true) {
+        printField(field)
+        print("Set/delete mines marks (x and y coordinates): ")
+
+        val x = scanner.next().toUpperCase()
+        val y = scanner.nextInt()
+
+        markCell(field, y - 1, x[0].toInt() - 'A'.toInt())
+
+        if (isWin(field)) {
+            break;
+        }
+
+        println()
+    }
+
+    println("Congratulations! You founded all mines!")
 }
