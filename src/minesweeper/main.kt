@@ -1,34 +1,37 @@
 import java.util.*
 
-enum class CellState {
-    EMPTY,
-    OPENED,
-    NUMBERED,
-    MARKED,
-    MINED
+enum class CellState(private var visibleChar: Char?) {
+    EMPTY('.'),
+    OPENED('#'),
+    NUMBERED(null),
+    MARKED('*'),
+    MINED('X');
+
+    fun getVisibleState(minesCount: Char): Char = visibleChar ?: minesCount
 }
 
 class Minesweeper(
     private val minesCount: Int,
     private var uncheckedCells: Int = (FIELD_SIZE - 2) * (FIELD_SIZE - 2)
 ) {
-    companion object FieldProperties {
+    companion object {
         private const val FIELD_SIZE = 11
+        const val GAME_ENDED = "End"
     }
 
-    private var field: MutableList<MutableList<Char>> = mutableListOf()
-    private var visibleField: MutableList<MutableList<CellState>> =
+    private var field: MutableList<MutableList<Char>> = MutableList(FIELD_SIZE) { MutableList(FIELD_SIZE) { '.' } }
+    private val visibleField: MutableList<MutableList<CellState>> =
         MutableList(FIELD_SIZE) { MutableList(FIELD_SIZE) { CellState.EMPTY } }
 
     private var created = false
 
-    private fun createField(RowId: Int, ColId: Int) {
+    private fun createField(rowId: Int, colId: Int) {
         val mines: MutableSet<Pair<Int, Int>> = mutableSetOf()
         val freeCells: MutableSet<Pair<Int, Int>> =
-            (1..FIELD_SIZE - 2).flatMap { rowId ->
-                (1..FIELD_SIZE - 2).map { colId -> rowId to colId }
+            (1..FIELD_SIZE - 2).flatMap { row ->
+                (1..FIELD_SIZE - 2).map { col -> row to col }
             }.toMutableSet()
-        freeCells.remove(Pair(RowId, ColId))
+        freeCells.remove(Pair(rowId, colId))
 
         while (mines.size != minesCount) {
             val cell = freeCells.random()
@@ -53,56 +56,46 @@ class Minesweeper(
         }
     }
 
-    private fun countMinesAround(RowId: Int, ColId: Int): Int {
+    private fun countMinesAround(rowId: Int, colId: Int): Int {
         var res = 0
         for (dx in -1..1) {
             for (dy in -1..1) {
-                res += if (field[RowId + dx][ColId + dy] == 'X') 1 else 0
+                res += if (field[rowId + dx][colId + dy] == 'X') 1 else 0
             }
         }
         return res
     }
 
-    fun printField() {
-        println(" |abcdefghi|\n-|${"-".repeat(FIELD_SIZE - 2)}|")
+    fun getField(): String {
+        var fieldString = ""
+        fieldString += " |${(1..FIELD_SIZE - 2).map { 'a' + it - 1 }.joinToString("")}|\n-|${"-".repeat(FIELD_SIZE - 2)}|\n"
         for (i in 1 until FIELD_SIZE - 1) {
-            print("$i|")
+
+            fieldString += "$i|"
             for (j in 1 until FIELD_SIZE - 1) {
-                printCell(i, j)
+                fieldString += visibleField[i][j].getVisibleState(minesCount = field[i][j])
             }
-            println("|")
+            fieldString += "|\n"
         }
-    }
 
-    private fun printCell(RowId: Int, ColId: Int) {
-        print(getVisibleState(RowId, ColId))
-    }
-
-    private fun getVisibleState(RowId: Int, ColId: Int): Char = when (visibleField[RowId][ColId]) {
-        CellState.MARKED -> '*'
-        CellState.OPENED -> '#'
-        CellState.EMPTY -> '.'
-        CellState.NUMBERED -> field[RowId][ColId]
-        CellState.MINED -> 'X'
+        return fieldString
     }
 
     fun checkForWin(): Boolean = uncheckedCells == minesCount
 
-    fun processQuery(RowId: Int, ColId: Int, query: String): String {
-        when (query) {
-            "mine" -> return setMark(RowId, ColId)
-            "free" -> return exploreCell(RowId, ColId)
-            else -> return "Typo in query. Try again."
-        }
+    fun processQuery(rowId: Int, colId: Int, query: String): String = when (query) {
+        "mine" -> setMark(rowId, colId)
+        "free" -> exploreCell(rowId, colId)
+        else -> "Typo in query. Try again."
     }
 
-    private fun setMark(RowId: Int, ColId: Int): String {
+    private fun setMark(rowId: Int, colId: Int): String {
         if (!this.created)
             return "No cells were opened"
 
-        when (visibleField[RowId][ColId]) {
-            CellState.MARKED -> visibleField[RowId][ColId] = CellState.EMPTY
-            CellState.EMPTY -> visibleField[RowId][ColId] = CellState.MARKED
+        when (visibleField[rowId][colId]) {
+            CellState.MARKED -> visibleField[rowId][colId] = CellState.EMPTY
+            CellState.EMPTY -> visibleField[rowId][colId] = CellState.MARKED
             CellState.OPENED -> return "Cell is opened"
             CellState.NUMBERED -> return "Cell is opened"
             else -> {
@@ -112,28 +105,28 @@ class Minesweeper(
         return ""
     }
 
-    private fun exploreCell(RowId: Int, ColId: Int): String {
-        if (RowId !in 1..FIELD_SIZE - 2 || ColId !in 1..FIELD_SIZE - 2)
-            return ""
+    private fun exploreCell(rowId: Int, colId: Int): String {
+        if (rowId !in 1..FIELD_SIZE - 2 || colId !in 1..FIELD_SIZE - 2)
+            return "Wrong coordinates."
 
         if (!this.created) {
-            createField(RowId, ColId)
+            createField(rowId, colId)
             this.created = true
         }
 
-        if (field[RowId][ColId] == 'X') {
+        if (field[rowId][colId] == 'X') {
             onLosing()
             return "End"
         }
 
         --uncheckedCells
 
-        visibleField[RowId][ColId] = if (field[RowId][ColId] == '.') CellState.OPENED else CellState.NUMBERED
-        if (visibleField[RowId][ColId] == CellState.OPENED) {
+        visibleField[rowId][colId] = if (field[rowId][colId] == '.') CellState.OPENED else CellState.NUMBERED
+        if (visibleField[rowId][colId] == CellState.OPENED) {
             for (dx in -1..1) {
                 for (dy in -1..1) {
-                    if (visibleField[RowId + dx][ColId + dy] == CellState.EMPTY)
-                        exploreCell(RowId + dx, ColId + dy)
+                    if (visibleField[rowId + dx][colId + dy] == CellState.EMPTY)
+                        exploreCell(rowId + dx, colId + dy)
                 }
             }
         }
@@ -151,28 +144,29 @@ class Minesweeper(
     }
 }
 
-fun main(args: Array<String>) {
+fun main() {
     print("Type in the number of mines you'd like to see: ")
     val n = readLine()!!.toInt()
     val minesweeper = Minesweeper(n)
 
     val scanner = Scanner(System.`in`)
     while (!minesweeper.checkForWin()) {
-        minesweeper.printField()
+        print(minesweeper.getField())
 
+        print("Enter coordinates and command (free/mine) i.e. \"1 a free\" (without quotes): ")
         val x = scanner.nextInt()
         val y = scanner.next().toString()[0] - 'a' + 1
         val query = scanner.next()
 
         val response = minesweeper.processQuery(x, y, query)
-        if (response == "End")
+        if (response == Minesweeper.GAME_ENDED)
             break
         else if (!response.isEmpty())
             println(response)
 
     }
 
-    minesweeper.printField()
+    print(minesweeper.getField())
 
     println(
         if (minesweeper.checkForWin()) "Congratulations! You've found all mines!"
