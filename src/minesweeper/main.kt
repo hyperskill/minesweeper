@@ -4,7 +4,6 @@ import java.util.*
 
 const val FIELD_SIZE = 10
 const val MAX_MINES_COUNT = FIELD_SIZE * FIELD_SIZE - 1
-val WHITESPACES = "[\\t ]+".toRegex()
 
 fun main() {
     val scanner = Scanner(System.`in`)
@@ -18,17 +17,15 @@ fun main() {
 
     val game = Game(FieldSize(FIELD_SIZE, FIELD_SIZE), mineCount)
 
-    game.printField(false)
+    println(game.toString(false))
     var generationPoint: CellPosition
     do {
         val (cell, _) = scanner.readUserCommand("Choose first cell to free(e.g. 7 c): ") ?: return
         generationPoint = cell
-    } while (generationPoint.rowId !in game.rowIndices ||
-        generationPoint.colId !in game.colIndices
-    )
+    } while (!game.isValidCellPosition(generationPoint))
 
-    game.initializeGame(generationPoint)
-    game.printField(false)
+    game.openCell(generationPoint)
+    println(game.toString(false))
 
     var isUserFail = false
     while (!game.checkGameToWin && !isUserFail) {
@@ -36,17 +33,14 @@ fun main() {
             "Set/unset mines marks or claim a cell as free(coordinates(e.g. 2 a) and command(mark or free)): "
         ) ?: return
 
-        if (cell.rowId in game.rowIndices && cell.rowId in game.rowIndices) {
+        if (game.isValidCellPosition(cell)) {
             isUserFail = when (cmd) {
-                Command.FREE.toString() -> game.openCell(cell)
-                Command.MARK.toString() -> {
-                    game.markCell(cell)
-                    false
-                }
+                Command.FREE -> game.openCell(cell)
+                Command.MARK -> game.markCell(cell)
                 else -> false
             }
         }
-        game.printField(isUserFail)
+        println(game.toString(isUserFail))
     }
 
     if (!isUserFail)

@@ -6,21 +6,33 @@ class Game(fieldSize: FieldSize, mineCount: Int) {
     val checkGameToWin: Boolean
         get() = fieldInfo.checkGameToWin
 
-    val rowIndices: IntRange
+    private val rowIndices: IntRange
         get() = fieldInfo.rowIndices
 
-    val colIndices: IntRange
+    private val colIndices: IntRange
         get() = fieldInfo.colIndices
 
-    fun initializeGame(startCellPosition: CellPosition) {
+    private var isInitialized: Boolean = false
+
+    private fun initializeGame(startCellPosition: CellPosition) {
         fieldInfo.generateMines(startCellPosition)
         fieldInfo.countMines()
         fieldInfo.openCell(startCellPosition)
     }
 
-    fun openCell(cell: CellPosition) = fieldInfo.openCell(cell)
+    fun openCell(cell: CellPosition): Boolean {
+        if (!isInitialized) {
+            initializeGame(cell)
+            isInitialized = true
+            return false
+        }
+
+        return fieldInfo.openCell(cell)
+    }
 
     fun markCell(cell: CellPosition) = fieldInfo.mark(cell)
 
-    fun printField(showAllHiddenCells: Boolean) = fieldInfo.printField(showAllHiddenCells)
+    fun toString(showAllHiddenCells: Boolean) = fieldInfo.toString(showAllHiddenCells)
+
+    fun isValidCellPosition(cell: CellPosition) = cell.rowId in rowIndices && cell.colId in colIndices
 }

@@ -149,7 +149,7 @@ class FieldInfo(
 
     private fun colIdToString(id: Int) = "${'a' + id}"
 
-    fun printField(showAllHiddenCells: Boolean) {
+    fun toString(showHiddenForUserCells: Boolean): String {
         val fieldToPrint = Array(rows) { CharArray(cols) }
 
         for (cell in cells) {
@@ -163,7 +163,7 @@ class FieldInfo(
             }
         }
 
-        if (!showAllHiddenCells) {
+        if (!showHiddenForUserCells) {
             for (cell in cells) {
                 fieldToPrint[cell.rowId][cell.colId] = when (cell) {
                     in marks -> MARK_CHAR
@@ -173,15 +173,23 @@ class FieldInfo(
             }
         }
 
-        val indent = cols.toString().length
-        println("${" ".repeat(indent)}|${rowIndices.joinToString("") { colIdToString(it) }}|")
-        println("${"-".repeat(indent)}|${"-".repeat(rows)}|")
+        return buildString {
+            val indent = cols.toString().length
 
-        println(fieldToPrint.withIndex().joinToString("\n") { (rowId, row) ->
-            "%${indent}d".format(rowId + 1) + row.joinToString(separator = "", prefix = "|", postfix = "|")
-        })
+            append(" ".repeat(indent))
+            append("|")
+            append(rowIndices.joinToString("") { colIdToString(it) })
+            append("|\n")
 
-        println("${"-".repeat(indent)}|${"-".repeat(rows)}|")
+            append("-".repeat(indent)).append("|").append("-".repeat(rows)).append("|\n")
+
+            append(fieldToPrint.withIndex().joinToString("\n") { (rowId, row) ->
+                "%${indent}d".format(rowId + 1) + row.joinToString(separator = "", prefix = "|", postfix = "|")
+            })
+            append("\n")
+
+            append("-".repeat(indent)).append("|").append("-".repeat(rows)).append("|")
+        }
     }
 
     fun openCell(cell: CellPosition): Boolean {
@@ -224,10 +232,12 @@ class FieldInfo(
         }
     }
 
-    fun mark(cell: CellPosition) {
+    fun mark(cell: CellPosition): Boolean {
         if (cell !in opened) {
             marks += cell
         }
+
+        return false
     }
 }
 
